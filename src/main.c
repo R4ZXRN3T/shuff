@@ -156,7 +156,7 @@ static unsigned char *read_file(const char *filename, size_t *file_length) {
 static int encode(const int argc, char *argv[]) {
 	size_t file_size;
 	const unsigned char *file_content = read_file(argv[2], &file_size);
-	if (file_content == NULL) {
+	if (file_content == nullptr) {
 		printf("\nError 7: File could not be found or read.\n");
 		return 7;
 	}
@@ -183,7 +183,7 @@ static int encode(const int argc, char *argv[]) {
 static int decode(const int argc, char *argv[]) {
 	size_t file_size;
 	const unsigned char *file_content = read_file(argv[2], &file_size);
-	if (file_content == NULL) {
+	if (file_content == nullptr) {
 		printf("\nError 7: File could not be found or read.\n");
 		return 7;
 	}

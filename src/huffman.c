@@ -57,8 +57,8 @@ static void count_bytes(const unsigned char *data, const size_t data_length, uin
  * @param byte_counts The valid count array.
  * @return The count of all unique bytes.
  */
-static uint8_t count_unique_bytes(const uint64_t byte_counts[256]) {
-	uint8_t final_count = 0;
+static size_t count_unique_bytes(const uint64_t byte_counts[256]) {
+	size_t final_count = 0;
 	for (int i = 0; i < 256; ++i) if (byte_counts[i] != 0) ++final_count;
 	return final_count;
 }
@@ -278,6 +278,8 @@ static size_t calculate_header_size(const uint64_t byte_counts[256]) {
 
 static void create_header(const uint64_t byte_counts[256], const uint64_t original_data_size,
                           const uint64_t encoded_data_size, unsigned char header_data[]) {
+	const size_t unique_bytes = count_unique_bytes(byte_counts);
+
 	// Magic number
 	header_data[0] = 's';
 	header_data[1] = 'h';
@@ -296,7 +298,7 @@ static void create_header(const uint64_t byte_counts[256], const uint64_t origin
 	for (size_t i = 0; i < 8; ++i) header_data[i + 13] = encoded_data_size_chars[i];
 
 	// Amount of unique bytes for header length
-	header_data[21] = count_unique_bytes(byte_counts);
+	header_data[21] = (unsigned char) unique_bytes;
 
 	// Write character counts
 	int j = 0;
@@ -316,12 +318,24 @@ static void create_header(const uint64_t byte_counts[256], const uint64_t origin
 }
 
 struct Encoding_Result huffman_encode(const unsigned char *data, const size_t data_length) {
+	if (data == NULL && data_length != 0) {
+		const struct Encoding_Result result = {
+			.encoded_data = nullptr,
+			.data_length = 0,
+			.header_data = nullptr,
+			.header_length = 0,
+			.error_code = 8
+		};
+
+		return result;
+	}
+
 	// Count occurrences of each byte.
 	uint64_t byte_counts[256];
 	count_bytes(data, data_length, byte_counts);
 
 	// Convert each element of the count array into nodes.
-	const int unique_count = count_unique_bytes(byte_counts);
+	const size_t unique_count = count_unique_bytes(byte_counts);
 	struct Node nodes[unique_count];
 	convert_to_node_array(byte_counts, nodes);
 
@@ -415,7 +429,8 @@ static void extract_header_data(const unsigned char *encoded_data, unsigned char
 	for (size_t i = 0; i < 8; ++i) encoded_data_size_chars[i] = encoded_data[i + 13];
 	*encoded_data_size = bytes_to_uint64(encoded_data_size_chars);
 
-	const uint8_t unique_bytes = encoded_data[21];
+	size_t unique_bytes = encoded_data[21];
+	if (unique_bytes == 0 && *original_data_size != 0) unique_bytes = 256;
 	for (size_t i = 0; i < unique_bytes * 9; i += 9) {
 		unsigned char current_byte_count[8];
 		for (size_t j = 0; j < 8; ++j) current_byte_count[j] = encoded_data[22 + i + j + 1];
@@ -443,7 +458,8 @@ struct Decoding_Result huffman_decode(const unsigned char *encoded_data, const s
 	constexpr unsigned char check_magic_number[4] = {'s', 'h', 'u', 'f'};
 	if (memcmp(magic_number, check_magic_number, 4) != 0) error_code = 1;
 	if (version != 1) error_code = 2;
-	if (encoded_data_length - calculate_header_size(byte_counts) != encoded_data_size) error_code = 4;
+	const size_t header_size = calculate_header_size(byte_counts);
+	if (encoded_data_length < header_size || encoded_data_length - header_size != encoded_data_size) error_code = 4;
 
 	if (error_code != 0) {
 		final_result.decoded_data = nullptr;
@@ -452,11 +468,12 @@ struct Decoding_Result huffman_decode(const unsigned char *encoded_data, const s
 		return final_result;
 	}
 
-	struct Node nodes[count_unique_bytes(byte_counts)];
+	const size_t unique_count = count_unique_bytes(byte_counts);
+	struct Node nodes[unique_count];
 	convert_to_node_array(byte_counts, nodes);
 
 	struct Node *root;
-	struct Node *storage = build_huffman_tree(nodes, count_unique_bytes(byte_counts), &root);
+	struct Node *storage = build_huffman_tree(nodes, unique_count, &root);
 
 	unsigned char *output = malloc(original_data_size);
 
