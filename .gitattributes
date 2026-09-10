@@ -1,0 +1,23 @@
+*          text=auto
+
+*.cs       text diff=csharp
+*.java     text diff=java
+*.html     text diff=html
+*.css      text
+*.js       text
+*.sql      text
+*.rs       text
+*.toml     text
+*.c		   text diff=c
+*.h		   text
+.gitignore text
+*.sh       text
+*.ps1      text
+*.bat      text
+
+
+*.csproj text merge=union
+*.sln    text merge=union eol=crlf
+
+*.docx   diff=astextplain
+*.DOCX   diff=astextplain
