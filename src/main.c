@@ -4,20 +4,20 @@
 
 #include "huffman.h"
 
-static void print_usage() {
+static void print_usage(void) {
 	printf("\nUsage:\n\nshuff [<action>] [<input>] [<output (optional)>]\n\naction: Either 'encode' or 'decode'");
 }
 
 static char *make_encoded_filename(const char *input_filename) {
 	const size_t length = strlen(input_filename);
 
-	constexpr char extension[] = ".shuf";
-	constexpr size_t extension_length = sizeof(extension) - 1;
+	const char extension[] = ".shuf";
+	const size_t extension_length = sizeof(extension) - 1;
 
 	char *output = malloc(length + extension_length + 1);
 
 	if (output == NULL) {
-		return nullptr;
+		return NULL;
 	}
 
 	memcpy(output, input_filename, length);
@@ -38,7 +38,7 @@ static char *toggle_shuf_extension(const char *filename) {
 		const size_t new_len = filename_len - shuf_len;
 		char *result = malloc(new_len + 1);
 
-		if (result == NULL)return nullptr;
+		if (result == NULL)return NULL;
 
 		memcpy(result, filename, new_len);
 		result[new_len] = '\0';
@@ -66,7 +66,7 @@ static char *toggle_shuf_extension(const char *filename) {
 	// +3 for "(1)", +1 for '\0'
 	char *result = malloc(base_len + 3 + extension_len + 1);
 
-	if (result == NULL)return nullptr;
+	if (result == NULL)return NULL;
 
 	memcpy(result, filename, base_len);
 	memcpy(result + base_len, "(1)", 3);
@@ -115,18 +115,18 @@ static int write_decoded_file(const char *filename, const struct Decoding_Result
 static unsigned char *read_file(const char *filename, size_t *file_length) {
 	FILE *file = fopen(filename, "rb");
 
-	if (file == NULL) return nullptr;
+	if (file == NULL) return NULL;
 
 	if (fseek(file, 0, SEEK_END) != 0) {
 		fclose(file);
-		return nullptr;
+		return NULL;
 	}
 
 	const long size = ftell(file);
 
 	if (size < 0) {
 		fclose(file);
-		return nullptr;
+		return NULL;
 	}
 
 	rewind(file);
@@ -135,14 +135,14 @@ static unsigned char *read_file(const char *filename, size_t *file_length) {
 
 	if (data == NULL && size != 0) {
 		fclose(file);
-		return nullptr;
+		return NULL;
 	}
 
 	if (size > 0) {
 		if (fread(data, 1, (size_t) size, file) != (size_t) size) {
 			free(data);
 			fclose(file);
-			return nullptr;
+			return NULL;
 		}
 	}
 
@@ -156,7 +156,7 @@ static unsigned char *read_file(const char *filename, size_t *file_length) {
 static int encode(const int argc, char *argv[]) {
 	size_t file_size;
 	const unsigned char *file_content = read_file(argv[2], &file_size);
-	if (file_content == nullptr) {
+	if (file_content == NULL) {
 		printf("\nError 7: File could not be found or read.\n");
 		return 7;
 	}
@@ -166,6 +166,7 @@ static int encode(const int argc, char *argv[]) {
 		printf("\nError %d: Error during encoding.\n", result.error_code);
 		return result.error_code;
 	}
+	free((void *) file_content);
 
 	char *output_file_name;
 	if (argc > 3) {
@@ -183,7 +184,7 @@ static int encode(const int argc, char *argv[]) {
 static int decode(const int argc, char *argv[]) {
 	size_t file_size;
 	const unsigned char *file_content = read_file(argv[2], &file_size);
-	if (file_content == nullptr) {
+	if (file_content == NULL) {
 		printf("\nError 7: File could not be found or read.\n");
 		return 7;
 	}
@@ -193,6 +194,7 @@ static int decode(const int argc, char *argv[]) {
 		printf("\nError %d: Error during decoding.\n", result.error_code);
 		return result.error_code;
 	}
+	free((void *) file_content);
 
 	char *output_file_name;
 	if (argc > 3) {

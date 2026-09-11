@@ -70,8 +70,8 @@ static void convert_to_node_array(const uint64_t byte_counts[256], struct Node n
 			struct Node new_node;
 			new_node.character = (unsigned char) i;
 			new_node.count = byte_counts[i];
-			new_node.left = nullptr;
-			new_node.right = nullptr;
+			new_node.left = NULL;
+			new_node.right = NULL;
 			nodes[j] = new_node;
 			++j;
 		}
@@ -104,7 +104,7 @@ static void heap_insert(struct Node *heap[], size_t *heap_size, struct Node *nod
 }
 
 static struct Node *heap_extract_min(struct Node *heap[], size_t *heap_size) {
-	if (*heap_size == 0) return nullptr;
+	if (*heap_size == 0) return NULL;
 
 	struct Node *minimum = heap[0];
 
@@ -154,8 +154,8 @@ static void create_mappings_recursive(const struct Node *node, unsigned char cod
 
 static struct Node *build_huffman_tree(struct Node nodes[], const size_t nodes_size, struct Node **out_root) {
 	if (nodes_size == 0) {
-		*out_root = nullptr;
-		return nullptr;
+		*out_root = NULL;
+		return NULL;
 	}
 
 	const size_t storage_size = 2 * nodes_size - 1;
@@ -164,8 +164,8 @@ static struct Node *build_huffman_tree(struct Node nodes[], const size_t nodes_s
 	if (!node_storage || !heap) {
 		free(node_storage);
 		free(heap);
-		*out_root = nullptr;
-		return nullptr;
+		*out_root = NULL;
+		return NULL;
 	}
 
 	// Copy leaf nodes into storage
@@ -320,9 +320,9 @@ static void create_header(const uint64_t byte_counts[256], const uint64_t origin
 struct Encoding_Result huffman_encode(const unsigned char *data, const size_t data_length) {
 	if (data == NULL && data_length != 0) {
 		const struct Encoding_Result result = {
-			.encoded_data = nullptr,
+			.encoded_data = NULL,
 			.data_length = 0,
-			.header_data = nullptr,
+			.header_data = NULL,
 			.header_length = 0,
 			.error_code = 8
 		};
@@ -336,7 +336,7 @@ struct Encoding_Result huffman_encode(const unsigned char *data, const size_t da
 
 	// Convert each element of the count array into nodes.
 	const size_t unique_count = count_unique_bytes(byte_counts);
-	struct Node nodes[unique_count];
+	struct Node nodes[256];
 	convert_to_node_array(byte_counts, nodes);
 
 	// Create mappings out of the Nodes.
@@ -350,7 +350,7 @@ struct Encoding_Result huffman_encode(const unsigned char *data, const size_t da
 	}
 	const size_t final_byte_size = (final_bit_size + 7) / 8;
 
-	unsigned char *output = nullptr;
+	unsigned char *output = NULL;
 	if (final_byte_size > 0) output = malloc(final_byte_size);
 	struct BitWriter bit_writer;
 	bit_writer_init(&bit_writer, output, final_byte_size);
@@ -455,21 +455,21 @@ struct Decoding_Result huffman_decode(const unsigned char *encoded_data, const s
 	// Check header validity
 	int error_code = 0;
 
-	constexpr unsigned char check_magic_number[4] = {'s', 'h', 'u', 'f'};
+	const unsigned char check_magic_number[4] = {'s', 'h', 'u', 'f'};
 	if (memcmp(magic_number, check_magic_number, 4) != 0) error_code = 1;
 	if (version != 1) error_code = 2;
 	const size_t header_size = calculate_header_size(byte_counts);
 	if (encoded_data_length < header_size || encoded_data_length - header_size != encoded_data_size) error_code = 4;
 
 	if (error_code != 0) {
-		final_result.decoded_data = nullptr;
+		final_result.decoded_data = NULL;
 		final_result.data_length = 0;
 		final_result.error_code = error_code;
 		return final_result;
 	}
 
 	const size_t unique_count = count_unique_bytes(byte_counts);
-	struct Node nodes[unique_count];
+	struct Node nodes[256];
 	convert_to_node_array(byte_counts, nodes);
 
 	struct Node *root;
