@@ -1,8 +1,9 @@
-cmake_minimum_required(VERSION 4.3)
+cmake_minimum_required(VERSION 4.0)
 
 project(shuff C)
 
-set(CMAKE_C_STANDARD 23)
+# set(CMAKE_C_COMPILER clang)
+set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
