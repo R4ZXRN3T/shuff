@@ -10,7 +10,6 @@ PROGRAM := shuff
 ifeq ($(OS),Windows_NT)
 
 GENERATOR ?= Ninja
-MSVC_ARCH ?= x64
 
 debug:
 	cmake -S . -B $(BUILD_DIR) -G "$(GENERATOR)"
