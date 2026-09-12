@@ -5,7 +5,8 @@
 #include "huffman.h"
 
 static void print_usage(void) {
-	printf("\nUsage:\n\nshuff [<action>] [<input>] [<output (optional)>]\n\naction: Either 'encode' or 'decode'");
+	printf(
+		"\nUsage:\n\nshuff [<action>] [<input>] [<output (optional)>]\n\naction:\tEither 'encode' or 'decode'\ninput:\tA valid os path to a file.\noutput:\tA valid os path to a file. Output file may be overwritten.");
 }
 
 static char *make_encoded_filename(const char *input_filename) {
@@ -209,6 +210,11 @@ static int decode(const int argc, char *argv[]) {
 }
 
 int main(const int argc, char *argv[]) {
+	if (argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)) {
+		print_usage();
+		return 0;
+	}
+
 	if (argc != 3 && argc != 4) {
 		printf("Error 5: Illegal arguments");
 		print_usage();
