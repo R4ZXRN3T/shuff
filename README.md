@@ -66,7 +66,8 @@ shuff [<action>] [<input>] [<output (optional)>]
 - [Clang](https://clang.llvm.org/) - Serves as a compiler and linker. This may be replaced by any other compiler, but
   compilation error may occur.
 - [LLVM](https://llvm.org/) - Usually already bundled with clang. On Windows, Clang usually comes with the LLVM install.
-- [Make](https://www.gnu.org/software/make/) - Used to simplify the build process. See [below]() for compilation without
+- [Make](https://www.gnu.org/software/make/) - Used to simplify the build process. See [below](#without-make) for
+  compilation without
   make.
 - (On Windows) [PowerShell](https://learn.microsoft.com/powershell/scripting/install/install-powershell-on-windows) -
   Version 7 or newer is required for actual installation. Lower versions have some bugs.
@@ -120,6 +121,31 @@ make release
 ```
 
 instead.
+
+### Without Make
+
+When not using Make, you can build the program for release with these commands:
+
+#### Linux / macOS
+
+```bash
+cmake -S . -B ./build -DCMAKE_BUILD_TYPE=Release
+cmake --build ./build
+```
+
+#### Windows
+
+```powershell
+cmake -S . -B .\build -G "Ninja"
+cmake --build .\build --config Release
+```
+
+(replace `Ninja` with another generator of your choice if you want.)
+
+You can then find the built executable in the `build` directory.
+
+Installation has to be done manually. For that just copy the executable in a directory on `$PATH` or add its path to
+`$PATH` on Windows.
 
 ## Development
 
