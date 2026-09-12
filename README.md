@@ -1,5 +1,26 @@
 # SHUFF - A Simple Huffman encoder
 
+## Table of contents
+
+- [What is this?](#what-is-this)
+	- [Header structure](#header-structure)
+	- [Dependencies](#dependencies)
+- [Usage](#usage)
+- [Installation](#installation)
+	- [Dependencies](#dependencies-1)
+	- [Install dependencies](#install-dependencies)
+		- [Linux / macOS](#linux--macos)
+		- [Windows](#windows)
+	- [Install](#install)
+	- [Without Make](#without-make)
+		- [Linux / macOS](#linux--macos-1)
+		- [Windows](#windows-1)
+- [Development](#development)
+	- [Project structure](#project-structure)
+	- [Development builds](#development-builds)
+- [Contributing](#contributing)
+- [Licensing](#licensing)
+
 ## What is this?
 
 ```shuff``` is a tool to encode and decode files with the Huffman Coding algorithm.
