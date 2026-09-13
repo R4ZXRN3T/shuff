@@ -21,13 +21,13 @@
 - [Contributing](#contributing)
 - [Licensing](#licensing)
 
-## What is this?
+# What is this?
 
 ```shuff``` is a tool to encode and decode files with the Huffman Coding algorithm.
 
 When encoding a file, it will store a small header with the encoded data following.
 
-### Header structure
+## Header structure
 
 | Number |  Byte   | Corresponding data        |
 |:------:|:-------:|---------------------------|
@@ -55,11 +55,11 @@ When encoding a file, it will store a small header with the encoded data followi
 
 In total, the header size can vary from 22 Bytes to 2,326 Bytes, depending on the amount of unique Bytes.
 
-### Dependencies
+## Dependencies
 
 This program has **no** runtime dependencies. Build dependencies are listed [below](#dependencies-1)
 
-## Usage
+# Usage
 
 Using shuff is very simple.
 
@@ -79,9 +79,9 @@ shuff [<action>] [<input>] [<output (optional)>]
 
 - On Windows, you may have to use `shuff.exe` instead.
 
-## Installation
+# Installation
 
-### Dependencies
+## Dependencies
 
 - [CMake](https://cmake.org/) - Required to build the program.
 - [Clang](https://clang.llvm.org/) - Serves as a compiler and linker. This may be replaced by any other compiler, but
@@ -93,9 +93,9 @@ shuff [<action>] [<input>] [<output (optional)>]
 - (On Windows) [PowerShell](https://learn.microsoft.com/powershell/scripting/install/install-powershell-on-windows) -
   Version 7 or newer is required for actual installation. Lower versions have some bugs.
 
-### Install dependencies
+## Install dependencies
 
-#### Linux / macOS
+### Linux / macOS
 
 Dependencies may be installed with your package manager of choice. A lot of distros have base development packages that
 may already include some of these tools.
@@ -106,7 +106,7 @@ On Arch Linux for example, you may use this command to install all required pack
 sudo pacman -S make cmake clang
 ```
 
-#### Windows
+### Windows
 
 On Windows, I would recommend to use [Chocolatey](https://chocolatey.org/) for dependency installation.
 
@@ -118,7 +118,7 @@ choco install cmake llvm make
 
 Make sure to refresh your `$PATH` afterward.
 
-### Install
+## Install
 
 The `Makefile` offers multiple different build options.
 
@@ -143,18 +143,18 @@ make release
 
 instead.
 
-### Without Make
+## Without Make
 
 When not using Make, you can build the program for release with these commands:
 
-#### Linux / macOS
+### Linux / macOS
 
 ```bash
 cmake -S . -B ./build -DCMAKE_BUILD_TYPE=Release
 cmake --build ./build
 ```
 
-#### Windows
+### Windows
 
 ```powershell
 cmake -S . -B .\build -G "Ninja"
@@ -168,9 +168,9 @@ You can then find the built executable in the `build` directory.
 Installation has to be done manually. For that just copy the executable in a directory on `$PATH` or add its path to
 `$PATH` on Windows.
 
-## Development
+# Development
 
-### Project structure
+## Project structure
 
 ```
 .
@@ -191,7 +191,7 @@ The code for the actual Huffman Coding algorithm is located in `huffman.c`, with
 all outward functions.
 The `main.c` file contains file handling logic and the input parsing.
 
-### Development builds
+## Development builds
 
 Using the `Makefile`, you can use
 
@@ -209,12 +209,12 @@ make clean
 
 to remove the `./build` folder and the executable from project root.
 
-## Contributing
+# Contributing
 
 Any issues and pull requests are always appreciated. If you have found a bug or just have a feature request, please do
 not hesitate to open an issue on GitHub.
 
-## Licensing
+# Licensing
 
 This project is licensed under the [GPL-v3 License](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
