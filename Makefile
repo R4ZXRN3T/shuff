@@ -30,7 +30,7 @@ remove:
 	powershell -NoProfile -Command "$$path = [Environment]::GetEnvironmentVariable('Path', 'Machine'); $$entry = 'C:\Program Files\$(PROGRAM)'; $$entries = $$path -split ';' | Where-Object { $$_ -and $$_ -ne $$entry }; [Environment]::SetEnvironmentVariable('Path', ($$entries -join ';'), 'Machine')"
 
 clean:
-	powershell -NoProfile -Command "Remove-Item -Recurse -Force '$(BUILD_DIR)' -ErrorAction SilentlyContinue; Remove-Item -Force './$(PROGRAM).exe' -ErrorAction SilentlyContinue"
+	powershell -NoProfile -Command "Remove-Item -Recurse -Force '$(BUILD_DIR)' -ErrorAction SilentlyContinue; Remove-Item -Force './$(PROGRAM).exe' -ErrorAction SilentlyContinue; Remove-Item -Force './$(PROGRAM)' -ErrorAction SilentlyContinue"
 
 # --------------------------------------------------
 # Linux / macOS
@@ -71,5 +71,6 @@ remove:
 clean:
 	rm -rf $(BUILD_DIR)
 	rm -f ./$(PROGRAM)
+	rm -f ./$(PROGRAM).exe
 
 endif
