@@ -177,7 +177,9 @@ Installation has to be done manually. For that just copy the executable in a dir
 ├── src
 │   ├── huffman.c
 │   ├── huffman.h
-│   └── main.c
+│   ├── main.c
+│   ├── progress_bar.c
+│   └── progress_bar.h
 ├── .editorconfig
 ├── .gitattributes
 ├── .gitignore
