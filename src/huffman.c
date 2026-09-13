@@ -1,9 +1,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <stdio.h>
 
+#include "progress_bar.h"
 #include "huffman.h"
+
+#include <stdio.h>
 
 struct Node {
 	unsigned char character;
@@ -247,11 +249,15 @@ static void bit_writer_flush(struct BitWriter *writer) {
 
 static void encode_data(const unsigned char *data, const size_t data_length, struct Mapping mappings[256],
                         struct BitWriter *writer) {
+	printf("Encoding data...\n");
+	init_progress_bar((int64_t) data_length);
 	for (size_t i = 0; i < data_length; ++i) {
 		const struct Mapping *mapping = &mappings[data[i]];
 
 		for (size_t j = 0; j < mapping->char_length; ++j) bit_writer_write_bit(writer, mapping->mapped[j]);
+		if ((i & 0x3FF) == 0) update_progress((int64_t) (i + 1));
 	}
+	finish_progress_bar();
 }
 
 static void uint64_to_bytes(uint64_t value, unsigned char bytes[8]) {
@@ -398,9 +404,10 @@ static size_t decode_data(const unsigned char *encoded_data, const size_t encode
 	const struct Node *current = root;
 	size_t output_count = 0;
 
+	printf("Decoding data...\n");
+	init_progress_bar((int64_t) original_size);
 	while (output_count < original_size) {
 		const unsigned char bit = bit_reader_read_bit(&reader);
-
 		if (bit == 0) current = current->left;
 		else current = current->right;
 
@@ -408,9 +415,14 @@ static size_t decode_data(const unsigned char *encoded_data, const size_t encode
 			output[output_count] = current->character;
 			++output_count;
 
+			// throttle as desired:
+			if ((output_count & 0x3FF) == 0) update_progress((int64_t) output_count);
+
 			current = root;
 		}
 	}
+
+	finish_progress_bar();
 
 	return output_count;
 }
@@ -476,6 +488,14 @@ struct Decoding_Result huffman_decode(const unsigned char *encoded_data, const s
 	struct Node *storage = build_huffman_tree(nodes, unique_count, &root);
 
 	unsigned char *output = malloc(original_data_size);
+	if (output == NULL) {
+		const struct Decoding_Result result = {
+			.data_length = 0,
+			.decoded_data = NULL,
+			.error_code = 5
+		};
+		return result;
+	}
 
 	if (root != NULL) {
 		decode_data(encoded_data + encoded_data_start, encoded_data_size, root, output, original_data_size);

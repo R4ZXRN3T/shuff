@@ -1,8 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <locale.h>
 
 #include "huffman.h"
+#include "progress_bar.h"
+
+#ifdef _WIN32
+typedef __int64 file_offset_t;
+#define file_seek _fseeki64
+#define file_tell _ftelli64
+#else
+#define file_seek fseek
+#define file_tell ftell
+#endif
+
+#define CHUNK 65536
 
 static void print_usage(void) {
 	printf(
@@ -78,20 +92,95 @@ static char *toggle_shuf_extension(const char *filename) {
 	return result;
 }
 
+unsigned int digits(const size_t n) {
+	unsigned int count = 1;
+	size_t m = n;
+
+	while (m >= 10) {
+		m /= 10;
+		count++;
+	}
+
+	return count;
+}
+
+unsigned int split_digits(const size_t n) {
+	return digits(n) + (digits(n) - 1) / 3;
+}
+
+void print_number(const int n) {
+	if (n >= 1000) {
+		print_number(n / 1000);
+		printf(".%03d", n % 1000);
+	} else printf("%d", n);
+}
+
+static void print_size_summary(const char *title, const size_t input_size, const size_t output_size) {
+	const unsigned int total_size_length = split_digits(input_size) + split_digits(output_size) + 4;
+	const unsigned int size_length_before = (unsigned int) (((double) total_size_length - 9.0) / 2.0);
+	const unsigned int size_length_after = (unsigned int) (((double) total_size_length - 9.0) / 2 + 0.5 + 7.0);
+
+	printf("\n%s\n\n", title);
+	for (int i = 0; i < (int) size_length_before; ++i) printf(" ");
+	printf("File size");
+	for (int i = 0; i < (int) size_length_after; ++i) printf(" ");
+	printf("Ratio\n");
+	for (int i = 0; i < (int) total_size_length; ++i) printf("-");
+	printf("    ----------\n");
+	print_number((int) input_size);
+	printf(" -> ");
+	print_number((int) output_size);
+	printf("       ");
+
+	if (input_size == 0) {
+		printf("n/a\n\n");
+	} else {
+		const double ratio = ((double) output_size / (double) input_size) * 100.0;
+		printf("%3.0f%%\n\n", ratio);
+	}
+}
+
 static int write_encoded_file(const char *filename, const struct Encoding_Result *result) {
+	printf("Writing encoded file...\n");
 	FILE *file = fopen(filename, "wb");
 
 	if (file == NULL) return 1;
 
-	if (fwrite(result->header_data, 1, result->header_length, file) != result->header_length) {
-		fclose(file);
-		return 1;
+	const size_t total = result->header_length + result->data_length;
+	init_progress_bar((int64_t) total);
+
+	size_t written = 0;
+	// write header (could be single call but count it)
+	size_t h = 0;
+	while (h < result->header_length) {
+		size_t to_write = result->header_length - h;
+		if (to_write > CHUNK) to_write = CHUNK;
+		size_t w = fwrite(result->header_data + h, 1, to_write, file);
+		if (w != to_write) {
+			fclose(file);
+			return 1;
+		}
+		h += w;
+		written += w;
+		update_progress((int64_t) written);
 	}
 
-	if (fwrite(result->encoded_data, 1, result->data_length, file) != result->data_length) {
-		fclose(file);
-		return 1;
+	// write encoded data
+	size_t d = 0;
+	while (d < result->data_length) {
+		size_t to_write = result->data_length - d;
+		if (to_write > CHUNK) to_write = CHUNK;
+		size_t w = fwrite(result->encoded_data + d, 1, to_write, file);
+		if (w != to_write) {
+			fclose(file);
+			return 1;
+		}
+		d += w;
+		written += w;
+		update_progress((int64_t) written);
 	}
+
+	finish_progress_bar();
 
 	if (fclose(file) != 0) return 1;
 
@@ -99,14 +188,31 @@ static int write_encoded_file(const char *filename, const struct Encoding_Result
 }
 
 static int write_decoded_file(const char *filename, const struct Decoding_Result *result) {
+	printf("Writing decoded file...\n");
 	FILE *file = fopen(filename, "wb");
 
 	if (file == NULL) return 1;
 
-	if (fwrite(result->decoded_data, 1, result->data_length, file) != result->data_length) {
-		fclose(file);
-		return 1;
+	init_progress_bar((int64_t) result->data_length);
+
+	size_t written = 0;
+
+	// write encoded data
+	size_t d = 0;
+	while (d < result->data_length) {
+		size_t to_write = result->data_length - d;
+		if (to_write > CHUNK) to_write = CHUNK;
+		const size_t w = fwrite(result->decoded_data + d, 1, to_write, file);
+		if (w != to_write) {
+			fclose(file);
+			return 1;
+		}
+		d += w;
+		written += w;
+		update_progress((int64_t) written);
 	}
+
+	finish_progress_bar();
 
 	if (fclose(file) != 0) return 1;
 
@@ -114,16 +220,17 @@ static int write_decoded_file(const char *filename, const struct Decoding_Result
 }
 
 static unsigned char *read_file(const char *filename, size_t *file_length) {
+	printf("Reading file...\n");
 	FILE *file = fopen(filename, "rb");
 
 	if (file == NULL) return NULL;
 
-	if (fseek(file, 0, SEEK_END) != 0) {
+	if (file_seek(file, 0, SEEK_END) != 0) {
 		fclose(file);
 		return NULL;
 	}
 
-	const long size = ftell(file);
+	const long long size = file_tell(file);
 
 	if (size < 0) {
 		fclose(file);
@@ -132,20 +239,28 @@ static unsigned char *read_file(const char *filename, size_t *file_length) {
 
 	rewind(file);
 
+	init_progress_bar(size);
+
 	unsigned char *data = malloc((size_t) size);
+	if (data == NULL) return NULL;
 
-	if (data == NULL && size != 0) {
-		fclose(file);
-		return NULL;
-	}
+	size_t bytes_read = 0;
+	while (bytes_read < (size_t) size) {
+		size_t to_read = (size_t) size - bytes_read;
+		if (to_read > CHUNK) to_read = CHUNK;
 
-	if (size > 0) {
-		if (fread(data, 1, (size_t) size, file) != (size_t) size) {
+		const size_t r = fread(data + bytes_read, 1, to_read, file);
+		if (r != to_read) {
 			free(data);
 			fclose(file);
 			return NULL;
 		}
+
+		bytes_read += r;
+		update_progress((int64_t) bytes_read);
 	}
+
+	finish_progress_bar();
 
 	fclose(file);
 
@@ -169,15 +284,26 @@ static int encode(const int argc, char *argv[]) {
 	}
 	free((void *) file_content);
 
+	const size_t encoded_size = result.header_length + result.data_length;
+	print_size_summary("Encoding summary:", file_size, encoded_size);
+
 	char *output_file_name;
+	int free_output_file_name = 0;
 	if (argc > 3) {
 		output_file_name = argv[3];
 	} else {
 		output_file_name = make_encoded_filename(argv[2]);
+		free_output_file_name = 1;
+	}
+
+	if (output_file_name == NULL) {
+		printf("\nError 1: Could not allocate output filename.\n");
+		return 1;
 	}
 
 	const int write_result = write_encoded_file(output_file_name, &result);
-	if (write_result != 0) printf("\nError %d: Error writing to file.", write_result);
+	if (write_result != 0) printf("\nError %d: Error writing to file.\n", write_result);
+	if (free_output_file_name) free(output_file_name);
 	return write_result;
 }
 
@@ -197,33 +323,45 @@ static int decode(const int argc, char *argv[]) {
 	}
 	free((void *) file_content);
 
+	print_size_summary("Decoding summary:", file_size, result.data_length);
+
 	char *output_file_name;
+	int free_output_file_name = 0;
 	if (argc > 3) {
 		output_file_name = argv[3];
 	} else {
 		output_file_name = toggle_shuf_extension(argv[2]);
+		free_output_file_name = 1;
+	}
+
+	if (output_file_name == NULL) {
+		printf("\nError 1: Could not allocate output filename.\n");
+		return 1;
 	}
 
 	const int write_result = write_decoded_file(output_file_name, &result);
-	if (write_result != 0) printf("\nError %d: Error writing to file.", write_result);
+	if (write_result != 0) printf("\nError %d: Error writing to file.\n", write_result);
+	if (free_output_file_name) free(output_file_name);
 	return write_result;
 }
 
 int main(const int argc, char *argv[]) {
+	setlocale(LC_NUMERIC, "");
+
 	if (argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)) {
 		print_usage();
 		return 0;
 	}
 
 	if (argc != 3 && argc != 4) {
-		printf("Error 5: Illegal arguments");
+		printf("\nError 5: Illegal arguments\n");
 		print_usage();
 		return 5;
 	}
 
 	if (strcmp(argv[1], "encode") == 0) return encode(argc, argv);
 	if (strcmp(argv[1], "decode") == 0) return decode(argc, argv);
-	printf("Error 6: Illegal action");
+	printf("\nError 6: Illegal action\n");
 	print_usage();
 	return 6;
 }
